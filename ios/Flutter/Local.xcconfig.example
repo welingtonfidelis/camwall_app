@@ -1,0 +1,3 @@
+// Copie para Local.xcconfig e informe o identificador do seu time da Apple.
+// Ele aparece em developer.apple.com/account, em Membership details.
+DEVELOPMENT_TEAM = SEU_TEAM_ID
