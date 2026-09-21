@@ -7,6 +7,16 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 enum _Phase { searching, connecting, live, retrying, authError }
 
+/// Liga a tela ao player, para pedir uma foto do quadro atual.
+class CameraTileController {
+  _CameraTileState? _state;
+
+  bool get isLive => _state?._phase == _Phase.live;
+
+  /// Quadro atual em JPEG, ou null se o vídeo ainda não estiver tocando.
+  Future<Uint8List?> capture() async => _state?._capture();
+}
+
 /// Como mostrar o quadro de uma camera de duas lentes. Essas cameras enviam um
 /// unico video com as duas imagens empilhadas: a lente 0 em cima e a 1 embaixo.
 enum LensView {
@@ -34,6 +44,8 @@ class CameraTile extends StatefulWidget {
     this.active = true,
     this.zoomable = false,
     this.lensView = LensView.whole,
+    this.muted = true,
+    this.tileController,
     this.onTap,
     this.onLensTap,
     this.onDualLens,
@@ -50,6 +62,12 @@ class CameraTile extends StatefulWidget {
   final bool active;
   final bool zoomable;
   final LensView lensView;
+
+  /// O som da câmera. Desligado por padrão: no mural várias câmeras tocariam juntas.
+  final bool muted;
+
+  /// Permite à tela pedir uma foto do quadro atual.
+  final CameraTileController? tileController;
   final VoidCallback? onTap;
 
   /// Toque numa das imagens de uma camera de duas lentes: 0 e a de cima.
@@ -124,6 +142,7 @@ class _CameraTileState extends State<CameraTile> {
         }
       }),
     );
+    widget.tileController?._state = this;
     _watchdog = Timer.periodic(const Duration(seconds: 5), (_) => _checkStall());
     _configure().then((_) => _sync());
   }
@@ -137,7 +156,6 @@ class _CameraTileState extends State<CameraTile> {
       'cache': 'no',
       'cache-on-disk': 'no',
       'cache-pause': 'no',
-      'aid': 'no',
       'keep-open': 'no',
       'interpolation': 'no',
       'video-latency-hacks': 'yes',
@@ -152,11 +170,37 @@ class _CameraTileState extends State<CameraTile> {
     try {
       await native.command(['change-list', 'demuxer-lavf-o', 'add', 'fflags=+nobuffer']);
     } catch (_) {}
+    await _applyMuted();
+  }
+
+  /// Liga ou desliga a trilha de áudio sem reabrir a conexão com a câmera.
+  Future<void> _applyMuted() async {
+    final native = _player.platform;
+    if (native is! NativePlayer) return;
+    try {
+      await native.setProperty('aid', widget.muted ? 'no' : 'auto');
+      if (!widget.muted) await _player.setVolume(100);
+    } catch (_) {}
+  }
+
+  /// Foto do quadro atual, em JPEG e na resolução do vídeo.
+  Future<Uint8List?> _capture() async {
+    if (_phase != _Phase.live) return null;
+    try {
+      return await _player.screenshot(format: 'image/jpeg');
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   void didUpdateWidget(CameraTile old) {
     super.didUpdateWidget(old);
+    if (old.tileController != widget.tileController) {
+      if (old.tileController?._state == this) old.tileController?._state = null;
+      widget.tileController?._state = this;
+    }
+    if (old.muted != widget.muted) _applyMuted();
     if (old.url != widget.url || old.active != widget.active) {
       _failures = 0;
       _sync();
@@ -277,6 +321,7 @@ class _CameraTileState extends State<CameraTile> {
 
   @override
   void dispose() {
+    if (widget.tileController?._state == this) widget.tileController?._state = null;
     _watchdog?.cancel();
     _retryTimer?.cancel();
     _errorCheck?.cancel();

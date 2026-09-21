@@ -46,6 +46,10 @@ definir a senha e mexer nas configurações.
   lado a lado. Tocar numa delas abre só aquela lente, com zoom por pinça.
 - **Movimento da câmera.** Um direcional na tela cheia move câmeras motorizadas: segurar move,
   soltar para. O sentido das setas é configurável por câmera.
+- **Som da câmera.** Um botão na tela cheia liga o áudio ao vivo. Vem sempre desligado, e o
+  mural nunca toca som, para várias câmeras não tocarem ao mesmo tempo.
+- **Foto na galeria.** Outro botão salva o quadro atual, na resolução em que o vídeo está
+  tocando. A imagem sai do próprio vídeo, sem abrir conexão extra com a câmera.
 - **Senhas protegidas.** Ficam no Keystore do Android ou no Keychain do iOS, nunca em log.
 
 ## Compatibilidade
@@ -120,6 +124,8 @@ Developer Program ela vale 1 ano.
 - O app só fala com as câmeras, dentro da rede local. Não tem servidor, conta, anúncios nem
   telemetria.
 - O cadastro fica nas preferências do app, e as senhas no armazenamento seguro do sistema.
+- A permissão de fotos serve só para gravar a imagem que você capturou. O app não lê nada da
+  sua galeria.
 - No ONVIF a senha segue em digest. No RTSP dessas câmeras ela vai na URL, em texto puro, como
   o próprio protocolo delas exige. Isso fica restrito à sua rede local.
 - **Defina uma senha na câmera pelo app do fabricante.** Muitas saem de fábrica, ou voltam de
@@ -156,8 +162,8 @@ flutter run --dart-define=CAMWALL_DEBUG_LANDSCAPE=true
 
 ## Limitações conhecidas
 
-- Sem áudio.
-- Sem gravação, reprodução do cartão, alertas de movimento e acesso de fora de casa.
+- Sem gravação de vídeo, reprodução do cartão, alertas de movimento e acesso de fora de casa.
+- Só dá para ouvir, não para falar. Essas câmeras não têm alto-falante.
 - A busca automática só encontra câmeras Xiongmai.
 - O vídeo tem de um a dois segundos de atraso, o que deixa o controle de movimento menos
   preciso que no app do fabricante.

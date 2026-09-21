@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>O app procura as suas câmeras na rede Wi-Fi e mostra o vídeo delas ao vivo.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Para salvar na sua galeria a foto capturada da câmera.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

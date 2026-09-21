@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <!-- Permite receber respostas de descoberta enviadas por broadcast no Wi-Fi. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+    <!-- Salvar a foto na galeria. No Android 10 em diante nao e preciso. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
     <application
         android:label="Câmeras"
         android:allowBackup="false"
