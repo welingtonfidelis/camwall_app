@@ -12,6 +12,10 @@ import 'settings_screen.dart';
 /// broadcast nao atravessa a rede virtual, entao este e o jeito de validar o player.
 const String _debugUrl = String.fromEnvironment('CAMWALL_DEBUG_URL');
 
+/// Apenas para desenvolvimento: `--dart-define=CAMWALL_DEBUG_OPEN=Portao` abre essa
+/// câmera em tela cheia ao iniciar, para medir a imagem principal sem tocar na tela.
+const String _debugOpen = String.fromEnvironment('CAMWALL_DEBUG_OPEN');
+
 /// Tela principal: todas as cameras dividindo a tela inteira.
 class WallScreen extends StatefulWidget {
   const WallScreen({super.key, required this.controller});
@@ -25,6 +29,7 @@ class WallScreen extends StatefulWidget {
 class _WallScreenState extends State<WallScreen> with WidgetsBindingObserver {
   /// false enquanto outra tela esta por cima ou o app esta em segundo plano.
   bool _active = true;
+  bool _debugOpened = false;
 
   @override
   void initState() {
@@ -73,6 +78,14 @@ class _WallScreenState extends State<WallScreen> with WidgetsBindingObserver {
             return const Center(child: CircularProgressIndicator());
           }
           final cams = c.cameras;
+          if (_debugOpen.isNotEmpty && !_debugOpened) {
+            final target = cams.where((cam) => cam.name == _debugOpen);
+            if (target.isNotEmpty) {
+              _debugOpened = true;
+              final id = target.first.id;
+              WidgetsBinding.instance.addPostFrameCallback((_) => _push(CameraViewScreen(controller: c, cameraId: id)));
+            }
+          }
           final tiles = <Widget>[
             for (final cam in cams)
               CameraTile(

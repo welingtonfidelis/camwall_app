@@ -39,8 +39,15 @@ definir a senha e mexer nas configurações.
   Ninguém precisa saber IP nem MAC.
 - **Acompanha a câmera quando o IP muda.** O app guarda o MAC e o número de série, não o IP.
   A cada 30 segundos ele confere onde cada câmera está.
-- **Reconexão automática.** Se o vídeo cair ou congelar por 15 segundos, o app procura a
-  câmera de novo e reconecta, com espera crescente entre as tentativas.
+- **Reconexão rápida e discreta.** Se o vídeo congelar por 6 segundos, ou a conexão cair, o
+  app reabre em meio segundo, com espera crescente só se voltar a falhar. Enquanto isso a
+  última imagem fica na tela, com um indicador pequeno ao lado do nome, e sai quando o vídeo
+  novo aparece. Numa queda medida no iPhone 11, a imagem ao vivo voltou em cerca de 2 segundos.
+  Se a câmera não voltar em 30 segundos, a imagem antiga dá lugar ao aviso, para não passar uma
+  cena antiga por atual.
+- **Tempo real.** O player não guarda reserva de vídeo e mostra cada quadro assim que ele chega.
+  Medido no Moto G60, comparando o relógio que a câmera desenha na imagem: cerca de 1 segundo de
+  atraso, estável depois de 7 minutos de exibição.
 - **Mural em tela cheia.** Todas as câmeras dividem a tela, sem rolagem, e a tela não apaga.
 - **Câmeras de duas lentes.** Em tela cheia, com o aparelho deitado, as duas imagens ficam
   lado a lado. Tocar numa delas abre só aquela lente, com zoom por pinça.
@@ -85,6 +92,24 @@ Alguns detalhes que custaram para descobrir e podem poupar o tempo de alguém:
 - O eixo esquerda e direita do ONVIF vem invertido, então o app já inverte por padrão.
 - O mural usa a imagem secundária da câmera, mais leve, e a tela cheia usa a principal.
 - A lista de protocolos padrão do media_kit não inclui `rtsp`. É preciso acrescentar.
+- Estas câmeras marcam o tempo errado: enviam 12,5 quadros por segundo e rotulam cada um como
+  se fossem 12,0, ou seja, o relógio delas corre 4% adiantado. Um player que obedece a essas
+  marcações consome 12 quadros por segundo, a câmera segura o resto, e o atraso cresce sem parar.
+  Medido: 4 segundos de atraso com 1 minuto de exibição e 11 segundos com 6 minutos. Com
+  `untimed` ligado, o atraso fica em torno de 1 segundo e não cresce.
+- Esse atraso é invisível por dentro do app: a taxa de chegada e a de exibição são iguais e a
+  fila tem meio segundo, porque o represamento acontece na câmera. Só dá para medir comparando o
+  relógio desenhado na imagem com uma foto tirada da câmera no mesmo instante.
+- No iPhone, o decodificador de vídeo do chip rejeita alguns quadros H.265 dessas câmeras, e a
+  imagem fica cinza por instantes. No Android o chip aceita os mesmos quadros. O app decodifica
+  em software no iOS: os erros de decodificação caíram de 48 para 2 a 4 em quatro minutos, e um
+  iPhone 11 dá conta da imagem principal a 12 quadros por segundo, sem perda.
+- Quando a conexão não abre, o media_kit não emite erro, só registra no log. E o log engana: ao
+  reabrir, o cancelamento da tentativa anterior também aparece como falha de abertura. O app
+  observa a propriedade `idle-active` do mpv, que só muda quando a tentativa atual termina.
+- A foto em JPEG do media_kit comprime pixel a pixel em Dart e leva mais de 1 segundo na imagem
+  principal. Para a imagem congelada da reconexão, o app pega a imagem crua e monta direto na
+  placa de vídeo, em cerca de 0,1 segundo.
 
 ## Instalar
 
@@ -160,6 +185,19 @@ flutter run --dart-define=CAMWALL_DEBUG_URL=rtsp://10.0.2.2:8554/nome_do_stream
 flutter run --dart-define=CAMWALL_DEBUG_LANDSCAPE=true
 ```
 
+Para medir reconexões num aparelho, sem tocar na tela:
+
+```bash
+flutter run --profile --dart-define=CAMWALL_DIAG=true --dart-define=CAMWALL_DEBUG_OPEN=Portao --dart-define=CAMWALL_DEBUG_DROP_EVERY=25
+```
+
+`CAMWALL_DIAG` registra no log o motivo de cada reconexão, o tempo até o primeiro quadro e o
+estado do player a cada 5 segundos. `CAMWALL_DEBUG_OPEN` abre a câmera com esse nome em tela
+cheia ao iniciar. `CAMWALL_DEBUG_DROP_EVERY` força uma reconexão a cada tantos segundos de vídeo.
+`CAMWALL_DEBUG_TIMED=true` volta a obedecer às marcações de tempo da câmera e
+`CAMWALL_DEBUG_SPEED=1.04` reproduz nessa velocidade, ambos para comparar o atraso.
+No iOS use `--profile`: a build de depuração às vezes não se conecta ao aparelho.
+
 ## Limitações conhecidas
 
 - Sem gravação de vídeo, reprodução do cartão, alertas de movimento e acesso de fora de casa.
@@ -169,6 +207,8 @@ flutter run --dart-define=CAMWALL_DEBUG_LANDSCAPE=true
   preciso que no app do fabricante.
 - Sem posições memorizadas nem zoom óptico.
 - Depois de reiniciar o aparelho, o app precisa ser aberto à mão.
+- No iPhone a decodificação em software gasta mais bateria que a do chip, principalmente na
+  tela cheia.
 
 ## Aviso
 
