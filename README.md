@@ -41,7 +41,8 @@ definir a senha e mexer nas configurações.
   A cada 30 segundos ele confere onde cada câmera está.
 - **Reconexão rápida e discreta.** Se o vídeo congelar por 6 segundos, ou a conexão cair, o
   app reabre em meio segundo, com espera crescente só se voltar a falhar. Enquanto isso a
-  última imagem fica na tela, com um indicador pequeno ao lado do nome, e sai quando o vídeo
+  última imagem fica na tela, com um indicador pequeno ao lado do nome, que só aparece depois
+  de 4 segundos sem imagem nova, e sai quando o vídeo
   novo aparece. Numa queda medida no iPhone 11, a imagem ao vivo voltou em cerca de 2 segundos.
   Se a câmera não voltar em 30 segundos, a imagem antiga dá lugar ao aviso, para não passar uma
   cena antiga por atual.

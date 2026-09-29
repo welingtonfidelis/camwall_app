@@ -125,7 +125,12 @@ class _CameraTileState extends State<CameraTile> {
   static const _stallStart = Duration(seconds: 10);
 
   /// Sem quadro novo por este tempo, o nome da câmera ganha o indicador de espera.
-  static const _slowAfter = Duration(seconds: 2);
+  ///
+  /// Com 2 s o indicador piscava em engasgos curtos da rede, que são comuns e se
+  /// resolvem sozinhos. Medido numa câmera de sinal bom: 1 engasgo acima de 2 s a
+  /// cada 4 minutos; numa de sinal fraco, 11. O aviso só ajuda quando a imagem
+  /// realmente parou, perto do limite que dispara a reconexão.
+  static const _slowAfter = Duration(seconds: 4);
 
   /// Depois de reconectar, a última imagem fica na frente até o vídeo novo passar
   /// este tempo sem erro de decodificação, o equivalente a três quadros. Nas
@@ -168,6 +173,15 @@ class _CameraTileState extends State<CameraTile> {
   DateTime? _frozenAt;
   DateTime _lastDecodeError = DateTime.fromMillisecondsSinceEpoch(0);
   int _ticks = 0;
+
+  /// Contagem de engasgos: intervalos longos entre um quadro exibido e o seguinte.
+  DateTime? _lastFrameAt;
+  int _gaps250 = 0;
+  int _gaps500 = 0;
+  int _gaps1s = 0;
+  int _gapsSlow = 0;
+  int _framesShown = 0;
+  Duration _worstGap = Duration.zero;
   bool _reportedDecoder = false;
   DateTime _lastProgress = DateTime.now();
   _Phase _phase = _Phase.searching;
@@ -498,6 +512,17 @@ class _CameraTileState extends State<CameraTile> {
 
   void _onProgress() {
     final now = DateTime.now();
+    final last = _lastFrameAt;
+    if (last != null && _started) {
+      final gap = now.difference(last);
+      _framesShown++;
+      if (gap > const Duration(milliseconds: 250)) _gaps250++;
+      if (gap > const Duration(milliseconds: 500)) _gaps500++;
+      if (gap > const Duration(seconds: 1)) _gaps1s++;
+      if (gap > _slowAfter) _gapsSlow++;
+      if (gap > _worstGap) _worstGap = gap;
+    }
+    _lastFrameAt = now;
     _lastProgress = now;
     if (_openedUrl == null) return;
     _failures = 0;
@@ -578,7 +603,8 @@ class _CameraTileState extends State<CameraTile> {
       }
     }
     debugPrint(
-      '[diag ${widget.name}] ${DateTime.now().toIso8601String().substring(11, 23)} estado: ${out.join(' ')}',
+      '[diag ${widget.name}] ${DateTime.now().toIso8601String().substring(11, 23)} estado: ${out.join(' ')} '
+      'quadros=$_framesShown engasgos>250ms=$_gaps250 >500ms=$_gaps500 >1s=$_gaps1s aviso>${_slowAfter.inSeconds}s=$_gapsSlow pior=${_worstGap.inMilliseconds}ms',
     );
   }
 
